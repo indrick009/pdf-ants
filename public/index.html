@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enko — Exports PDF</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+    h1 { font-size: 1.4rem; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    button { padding: .45rem .9rem; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+    button.secondary { background: #6b7280; }
+    button.danger { background: #dc2626; }
+    button:disabled { opacity: .5; cursor: default; }
+    input { padding: .45rem; border: 1px solid #ccc; border-radius: 6px; width: 130px; }
+    .bar { height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden; margin: .5rem 0; }
+    .bar > div { height: 100%; background: #2563eb; transition: width .5s; }
+    .meta { font-size: .8rem; color: #666; }
+    .status { font-weight: 600; text-transform: uppercase; font-size: .75rem; }
+    .status.completed { color: #16a34a; }
+    .status.failed { color: #dc2626; }
+    .status.processing, .status.queued { color: #d97706; }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <h1>Enko — Génération PDF massif</h1>
+
+  <div class="card">
+    <div class="row">
+      <input id="seedCount" type="number" value="10000" min="1" step="1000" />
+      <button id="seedBtn" class="secondary">Générer les données</button>
+      <button id="clearBtn" class="secondary">Vider les données</button>
+      <span class="meta" id="seedMsg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="exportBtn">Nouvel export PDF</button>
+      <span class="meta">L'export couvre l'ensemble des données. Le PDF est généré en arrière-plan par les workers.</span>
+    </div>
+  </div>
+
+  <div id="exports"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function api(path, opts) {
+      const res = await fetch(path, opts);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+      return res.json();
+    }
+
+    $('seedBtn').onclick = async () => {
+      $('seedBtn').disabled = true;
+      $('seedMsg').textContent = 'génération en cours…';
+      try {
+        const r = await api('/admin/seed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ count: Number($('seedCount').value) }),
+        });
+        $('seedMsg').textContent = `${r.inserted} éléments insérés`;
+      } catch (e) { $('seedMsg').textContent = 'erreur: ' + e.message; }
+      $('seedBtn').disabled = false;
+    };
+
+    $('clearBtn').onclick = async () => {
+      await api('/admin/items', { method: 'DELETE' });
+      $('seedMsg').textContent = 'données supprimées';
+    };
+
+    $('exportBtn').onclick = async () => {
+      $('exportBtn').disabled = true;
+      try { await api('/exports', { method: 'POST' }); await refresh(); }
+      catch (e) { alert(e.message); }
+      $('exportBtn').disabled = false;
+    };
+
+    function render(exports) {
+      $('exports').innerHTML = exports.map((e) => `
+        <div class="card">
+          <div class="row">
+            <span class="status ${e.status}">${e.status}</span>
+            <span class="meta">${e.id.slice(0, 8)}…</span>
+            <span style="flex:1"></span>
+            ${e.status === 'completed' ? `<a href="${e.download_url}">Télécharger le PDF</a>` : ''}
+            <button class="danger" onclick="del('${e.id}')">Supprimer</button>
+          </div>
+          <div class="bar"><div style="width:${e.progress}%"></div></div>
+          <div class="meta">
+            ${e.processed.toLocaleString()} / ${e.total.toLocaleString()} pages — ${e.progress}%
+            · chunks ${e.completed_chunks}/${e.total_chunks}
+            ${e.failed_chunks ? `· <span style="color:#dc2626">${e.failed_chunks} échoués</span>` : ''}
+            ${e.error ? `· <span style="color:#dc2626">${e.error}</span>` : ''}
+          </div>
+        </div>`).join('') || '<p class="meta">Aucun export.</p>';
+    }
+
+    window.del = async (id) => { await api('/exports/' + id, { method: 'DELETE' }); await refresh(); };
+
+    async function refresh() {
+      try { render(await api('/exports')); } catch (e) { /* backend pas prêt */ }
+    }
+
+    refresh();
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>
