@@ -58,7 +58,7 @@ export async function* prefetchImages(items, concurrency, log) {
       const item = items[idx];
       executing.set(
         idx,
-        fetchImage(item.image_url, log).then((buf) => ({ item, buf }))
+        fetchImage(item.photo_url, log).then((buf) => ({ item, buf }))
       );
     }
   };

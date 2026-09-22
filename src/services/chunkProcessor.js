@@ -40,11 +40,26 @@ export async function processChunk(job, log) {
 
   try {
     const { rows: items } = await query(
-      'SELECT title, description, image_url FROM items ORDER BY id LIMIT $1 OFFSET $2',
+      `SELECT last_name, first_name, gender, class_name, birth_date, matricule,
+              student_number, photo_url, subjects
+       FROM items ORDER BY id LIMIT $1 OFFSET $2`,
       [chunk.end_offset - chunk.start_offset, chunk.start_offset]
     );
 
-    const { pages, imageErrors } = await generateChunkPdf({ items, destPath: tmpFile, log });
+    // Total pages across the whole export — used for "Page X / Y" in the
+    // footer. Since one report card = one page, this is known in advance.
+    const { rows: [expRow] } = await query(
+      'SELECT total_items FROM exports WHERE id = $1',
+      [exportId]
+    );
+    const totalPages = expRow?.total_items ?? items.length;
+
+    const { pages, imageErrors } = await generateChunkPdf({
+      items,
+      totalPages,
+      destPath: tmpFile,
+      log,
+    });
 
     const key = chunkKey(exportId, chunkIndex);
     await uploadFile(key, tmpFile);

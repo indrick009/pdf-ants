@@ -64,7 +64,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ count: Number($('seedCount').value) }),
         });
-        $('seedMsg').textContent = `${r.inserted} éléments insérés`;
+        $('seedMsg').textContent = `${r.inserted} élèves insérés`;
       } catch (e) { $('seedMsg').textContent = 'erreur: ' + e.message; }
       $('seedBtn').disabled = false;
     };
@@ -93,7 +93,7 @@
           </div>
           <div class="bar"><div style="width:${e.progress}%"></div></div>
           <div class="meta">
-            ${e.processed.toLocaleString()} / ${e.total.toLocaleString()} pages — ${e.progress}%
+            ${e.processed.toLocaleString()} / ${e.total.toLocaleString()} bulletins — ${e.progress}%
             · chunks ${e.completed_chunks}/${e.total_chunks}
             ${e.failed_chunks ? `· <span style="color:#dc2626">${e.failed_chunks} échoués</span>` : ''}
             ${e.error ? `· <span style="color:#dc2626">${e.error}</span>` : ''}

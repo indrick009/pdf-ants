@@ -29,7 +29,7 @@ async function api(path, opts) {
 }
 
 async function main() {
-  console.log(`bench: ${total.toLocaleString()} items against ${API}`);
+  console.log(`bench: ${total.toLocaleString()} bulletins against ${API}`);
 
   if (!noSeed) {
     process.stdout.write('seeding… ');
@@ -40,7 +40,7 @@ async function main() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ count: total }),
     });
-    console.log(`${inserted.toLocaleString()} items in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`${inserted.toLocaleString()} bulletins in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   }
 
   const { id } = await api('/exports', { method: 'POST' });
@@ -55,9 +55,9 @@ async function main() {
       const elapsed = (Date.now() - t0) / 1000;
       const rate = elapsed > 0 ? (exp.processed / elapsed).toFixed(0) : '0';
       process.stdout.write(
-        `\r${exp.status}  ${exp.processed.toLocaleString()}/${exp.total.toLocaleString()} pages` +
+        `\r${exp.status}  ${exp.processed.toLocaleString()}/${exp.total.toLocaleString()} bulletins` +
         `  ${exp.progress}%  chunks ${exp.completed_chunks}/${exp.total_chunks}` +
-        `  ${rate} pages/s   `
+        `  ${rate} bulletins/s   `
       );
       last = exp.processed;
     }
@@ -70,7 +70,7 @@ async function main() {
   }
 
   const elapsed = (Date.now() - t0) / 1000;
-  console.log(`\n\ndone in ${elapsed.toFixed(1)}s — ${(exp.total / elapsed).toFixed(0)} pages/s`);
+  console.log(`\n\ndone in ${elapsed.toFixed(1)}s — ${(exp.total / elapsed).toFixed(0)} bulletins/s`);
   console.log(`download: ${API}/exports/${id}/download`);
 }
 
